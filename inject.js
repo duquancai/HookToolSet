@@ -3,6 +3,32 @@ const script = document.createElement('script');
 function core(e, window) {
     var globalConfig = e;
     //console.log("inject start!", e)
+	var saf;
+    ;(function() {
+        var $toString = Function.toString
+          , cacheI = []
+          , cacheS = []
+          , idxI = [].indexOf.bind(cacheI)
+          , pushI = [].push.bind(cacheI)
+          , pushS = [].push.bind(cacheS)
+        Object.defineProperty(Function.prototype, 'toString', {
+            "enumerable": !1,
+            "configurable": !0,
+            "writable": !0,
+            "value": function toString() {
+                return typeof this == 'function' && cacheS[idxI(this)] || $toString.call(this);
+            }
+        })
+        function safe_func(func, name) {
+            if (-1 == idxI(func)) {
+                pushI(func)
+                pushS(`function ${name || func.name.replace('_', ' ') || ''}() { [native code] }`)
+            }
+            return func
+        }
+        ;safe_func(Function.prototype.toString, 'toString')
+        saf = safe_func
+    })();
 
     if (e["config-hook-debugger"]) {
 
@@ -116,19 +142,22 @@ function core(e, window) {
     if (e["config-hook-setcookie"]) {
         (function () {
             'use strict';
-            var pre = document.cookie;
-            Object.defineProperty(document, 'cookie', {
-                get: function () {
-                    //console.log('Getting document.cookie')
-                    return pre;
-
-                },
-                set: function (val) {
-                    console.log('Setting document.cookie', val);
-                    debugger;
-                    pre = val
-
-                }
+			var cookieTemp = "";
+			var _new_val_get = saf(	function get_cookie() {
+				//console.log('Getting document.cookie', cookieTemp)
+				return cookieTemp;
+            });
+			var _new_val_set = saf(function set_cookie() {
+				cookieTemp = arguments[0];
+				console.log('Setting document.cookie', arguments[0]);
+				debugger;
+				return arguments[0];
+            });
+            Object.defineProperty(Document.prototype, 'cookie', {
+				set: _new_val_set,
+				get: _new_val_get,
+				enumerable: true,
+				configurable: true			
             });
         })();
     }
